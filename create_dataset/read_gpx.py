@@ -62,7 +62,8 @@ for gpx_i in gpx_list:
 
         diff = elev2 - elev1
 
-        if diff >=0:
+        if dif
+        f >=0:
             up += diff
         else:
             down += diff
@@ -79,4 +80,4 @@ for gpx_i in gpx_list:
 print(df_trails)
 
 #convert to csv for further analysis
-df.to_csv("./gpx_apuane/trails.csv", sep='\t')
+df_trails.to_csv("./gpx_apuane/trails.csv")
