@@ -15,22 +15,13 @@ def compute_distance(lat1, lon1, lat2, lon2):
 
     return d * 1000; #meters
 
-
-# # Load gpx.
-# gpx_path = 'gpx_apuane/anello-della-pania-della-croce.gpx'
-# with open(gpx_path) as f:
-#     gpx = gpxpy.parse(f)
-
 gpx_list = []
 gpx_path = "./gpx_apuane/"
 filelist = os.listdir(gpx_path)
 for i in filelist:
     if i.endswith(".gpx"):
         with open(gpx_path + i, 'r') as f:
-            #gpx = gpxpy.parse(f)
             gpx_list.append(gpxpy.parse(f))
-
-#print(gpx_list[0].tracks[0].segments[0].points[0])
 
 # Convert to a dataframe one point at a time.
 trails = []
@@ -50,6 +41,7 @@ for gpx_i in gpx_list:
     #extract info about trail from datapoints:
     #time
     total_time = df['time'][df.index[-1]] - df['time'][df.index[0]]
+
     # length
     lat1 = lon1 = lat2 = lon2 = 0.
     length = 0.
@@ -62,7 +54,7 @@ for gpx_i in gpx_list:
 
         length += compute_distance(lat1, lon1, lat2, lon2)
 
-    #uphill, descent
+    #uphill, downhill
     up = down = 0.
     for p in range(0, len(df.index)-1):
         elev1 = df['elevation'][p]
@@ -84,7 +76,7 @@ for gpx_i in gpx_list:
 
     df_trails = pd.DataFrame.from_records(trails)
 
-
 print(df_trails)
 
+#convert to csv for further analysis
 df.to_csv("./gpx_apuane/trails.csv", sep='\t')
