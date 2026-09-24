@@ -62,8 +62,7 @@ for gpx_i in gpx_list:
 
         diff = elev2 - elev1
 
-        if dif
-        f >=0:
+        if diff >=0:
             up += diff
         else:
             down += diff
@@ -75,9 +74,12 @@ for gpx_i in gpx_list:
         'downhill': -1*down
     })
 
-    df_trails = pd.DataFrame.from_records(trails)
+
+df_trails = pd.DataFrame.from_records(trails)
+#Convert timestamp to seconds
+df_trails['time'] = df_trails['time'].dt.total_seconds()
 
 print(df_trails)
 
 #convert to csv for further analysis
-df_trails.to_csv("./gpx_apuane/trails.csv")
+df_trails.to_csv("./gpx_apuane/trails.csv", index=False)
