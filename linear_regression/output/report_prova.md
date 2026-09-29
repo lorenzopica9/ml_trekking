@@ -2,28 +2,36 @@ Starting trails analysis.
 Opening ../create_dataset/gpx_apuane/trails.csv file.
 
 Linear regression: y=time, x=length
-Intercept = 6102.47 +- 1564.42. t-statistic = 3.90, p-value = 0.000
-Slope(length) = 1.17 +- 0.13. t-statistic = 8.91, p-value = 0.000
-Intercept CI @ 95% = [2987.96, 9216.99]
-Slope(length) CI @ 95% = [0.91, 1.43]
-RSE = 5337.78
-R2 = 0.50. (0: linear fit explains data variation)
+Intercept = 6061.26 +- 1733.27. t-statistic = 3.50, p-value = 0.001
+Slope(length) = 1.15 +- 0.15. t-statistic = 7.66, p-value = 0.000
+Intercept CI @ 95% = [2596.50, 9526.02]
+Slope(length) CI @ 95% = [0.85, 1.45]
+RSE = 5230.72
+R2 = 0.49. (0: linear fit explains data variation)
 
 
 Linear regression: y=time, x=uphill
-Intercept = 10166.16 +- 1324.91. t-statistic = 7.67, p-value = 0.000
-Slope(uphill) = 12.07 +- 1.59. t-statistic = 7.61, p-value = 0.000
-Intercept CI @ 95% = [7528.47, 12803.86]
-Slope(uphill) CI @ 95% = [8.91, 15.23]
-RSE = 5743.45
-R2 = 0.43. (0: linear fit explains data variation)
+Intercept = 8402.82 +- 1593.33. t-statistic = 5.27, p-value = 0.000
+Slope(uphill) = 14.44 +- 2.09. t-statistic = 6.92, p-value = 0.000
+Intercept CI @ 95% = [5217.80, 11587.83]
+Slope(uphill) CI @ 95% = [10.27, 18.61]
+RSE = 5481.44
+R2 = 0.44. (0: linear fit explains data variation)
 
 
 Linear regression: y=time, x=downhill
-Intercept = 10412.77 +- 1195.43. t-statistic = 8.71, p-value = 0.000
-Slope(downhill) = 11.60 +- 1.39. t-statistic = 8.37, p-value = 0.000
-Intercept CI @ 95% = [8032.85, 12792.69]
-Slope(downhill) CI @ 95% = [8.84, 14.36]
-RSE = 5504.39
-R2 = 0.47. (0: linear fit explains data variation)
+Intercept = 9000.61 +- 1458.51. t-statistic = 6.17, p-value = 0.000
+Slope(downhill) = 14.07 +- 1.95. t-statistic = 7.23, p-value = 0.000
+Intercept CI @ 95% = [6085.10, 11916.12]
+Slope(downhill) CI @ 95% = [10.18, 17.96]
+RSE = 5375.86
+R2 = 0.46. (0: linear fit explains data variation)
 
+Features forward selection
+Features: length, uphill, downhill
+Results : True, False, True
+Features backward selection
+Features: length, uphill, downhill
+Results : True, False, True
+
+Multiple linear regression: y=time, x=length, uphill, downhill

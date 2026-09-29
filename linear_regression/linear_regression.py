@@ -17,6 +17,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import StandardScaler # scale data as preprocessing
 from sklearn.preprocessing import MinMaxScaler   # scale data in 0-1 range
+from sklearn.feature_selection import SequentialFeatureSelector
 
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
@@ -50,13 +51,13 @@ def linear_regression_1d(df, feature, y_var, r_seed, fname, test_size=0.2):
     #scaler = StandardScaler()
     #x_scaled = scaler.fit_transform(x)
     # add intercept column for statsmodel
-    x_const = sm.add_constant(x)
+    x_const = sm.add_constant(x_train)
 
     # alternative : normalize features values in 0-1 range
     # scaler = MinMaxScaler()
     # x_scaled = scaler.fit_transform(x)
 
-    model = sm.OLS(y, x_const)
+    model = sm.OLS(y_train, x_const)
     results = model.fit()
     #print(results.summary())
 
@@ -86,18 +87,61 @@ def linear_regression_1d(df, feature, y_var, r_seed, fname, test_size=0.2):
     sf = pred.summary_frame(alpha=0.05)
 
     fig, ax = plt.subplots(figsize=(7, 5))
-    ax.scatter(x, y, s=20, label='Dati')
-    ax.plot(x_grid, sf['mean'], color='C1', label='Fit OLS')
-    ax.fill_between(x_grid, sf['mean_ci_lower'], sf['mean_ci_upper'], color='C1', alpha=0.3, label='IC 95% della retta')
-    ax.set_xlabel('x')
+    ax.scatter(x, y, s=20, label='Data')
+    ax.plot(x_grid, sf['mean'], color='C1', label='Fit')
+    ax.fill_between(x_grid, sf['mean_ci_lower'], sf['mean_ci_upper'], color='C1', alpha=0.3, label='CI @ 95%')
+    ax.set_xlabel(feature)
 
-    ax.set_ylabel('y')
+    ax.set_ylabel('time')
     ax.legend()
     fig.tight_layout()
 
     out_dir_fig = f'./output/figs/'
     os.makedirs(out_dir_fig, exist_ok=True)
     fig.savefig(out_dir_fig+'fit_'+feature+'.png', dpi=200)
+
+
+def variables_selection(df, features, y_var, r_seed, fname, sel_type, test_size=0.2):
+    x = df_trails[features].to_numpy()
+    y = df_trails[y_var].to_numpy()
+
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=test_size, random_state=r_seed)
+
+    # Define model
+    model = LinearRegression()
+
+    # run selection
+    sfs = SequentialFeatureSelector(model, n_features_to_select=2, direction=sel_type)
+    sfs.fit(x_train, y_train)
+    result = sfs.get_support()
+    print_to_file(fname, 'Features '+sel_type+' selection')
+    print_to_file(fname, 'Features: ' + ', '.join(features))
+    print_to_file(fname, 'Results : ' + ', '.join(str(r) for r in result))
+    
+
+
+def multiple_linear_regression(df, features, y_var, r_seed, fname, test_size=0.2):
+    #Define x and y for the regression
+    x = df_trails[features].to_numpy()
+    y = df_trails[y_var].to_numpy()
+
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=test_size, random_state=r_seed)
+    x_const = sm.add_constant(x)
+
+    model = sm.OLS(y, x_const)
+    results = model.fit()
+
+    print_to_file(fname, '')
+    print_to_file(fname, 'Multiple linear regression: y=' + y_var + ', x=' + ', '.join(features))
+
+    # # compute and print values, uncertainties, t-statistics and p-values
+    # print_to_file(fname, 'Intercept = {:.2f} +- {:.2f}. t-statistic = {:.2f}, p-value = {:.3f}'.format(results.params[0], results.bse[0], results.tvalues[0], results.pvalues[0]))
+    # print_to_file(fname, 'Slope('+feature+') = {:.2f} +- {:.2f}. t-statistic = {:.2f}, p-value = {:.3f}'.format(results.params[1], results.bse[1], results.tvalues[1], results.pvalues[1]))
+    
+    # # confidence intervals
+    # conf_int = results.conf_int(alpha=0.05)
+    # print_to_file(fname, 'Intercept CI @ 95% = [{:.2f}, {:.2f}]'.format(conf_int[0, 0], conf_int[0, 1]))
+    # print_to_file(fname, 'Slope('+feature+') CI @ 95% = [{:.2f}, {:.2f}]'.format(conf_int[1, 0], conf_int[1,1]))
 
 
 
@@ -147,24 +191,14 @@ print(df_trails.info())  # Check column types and missing values
 print(df_trails.describe())  # Get summary statistics
 printinfo('')
 
+# perform linear regression on each single feature
 linear_regression_1d(df_trails, 'length', 'time', r_seed=42, fname=out_fname, test_size=0.2)
-linear_regression_1d(df_trails, 'uphill', 'time', r_seed=31, fname=out_fname, test_size=0.2)
-linear_regression_1d(df_trails, 'downhill', 'time', r_seed=94, fname=out_fname, test_size=0.2)
+linear_regression_1d(df_trails, 'uphill', 'time', r_seed=42, fname=out_fname, test_size=0.2)
+linear_regression_1d(df_trails, 'downhill', 'time', r_seed=42, fname=out_fname, test_size=0.2)
 
+# choose variables to include in multiple linear regression
+variables_selection(df_trails, ['length', 'uphill', 'downhill'], 'time', r_seed=42, fname=out_fname, sel_type='forward', test_size=0.2)
+variables_selection(df_trails, ['length', 'uphill', 'downhill'], 'time', r_seed=42, fname=out_fname, sel_type='backward', test_size=0.2)
 
-
-# # make predictions on test data
-# y_pred = model.predict(x_test)
-
-# predictions = pd.DataFrame({'Actual': y_test, 'Predicted': y_pred})
-# print(predictions.head())
-
-# # evaluate model prediction
-
-# mae = mean_absolute_error(y_test, y_pred)
-# mse = mean_squared_error(y_test, y_pred)
-# r2 = r2_score(y_test, y_pred)
-
-# print('Mean Absolute Error (MAE):', mae)
-# print('Mean Squared Error (MSE):', mse)
-# print('R-squared Score:', r2)
+# multiple linear regression
+multiple_linear_regression(df_trails, ['length', 'uphill', 'downhill'], 'time', r_seed=42, fname=out_fname, test_size=0.2)
