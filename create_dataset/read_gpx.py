@@ -67,11 +67,23 @@ for gpx_i in gpx_list:
         else:
             down += diff
 
+    # determine if circular path
+    # distance between startind and final points
+    print(len(df.index))
+    dist_s_f = compute_distance(df['latitude'][0], df['longitude'][0], df['latitude'][len(df.index)-1], df['longitude'][len(df.index)-1])
+    
+    # assume a tolerance of 5% of total length
+    if(dist_s_f <= 0.05*length):
+        bool_circ = 1
+    else:
+        bool_circ = 0
+
     trails.append({
         'time': total_time,
         'length': length,
         'uphill': up,
-        'downhill': -1*down
+        'downhill': -1*down,
+        'circular': bool_circ
     })
 
 
