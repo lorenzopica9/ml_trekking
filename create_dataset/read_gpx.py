@@ -16,7 +16,7 @@ def compute_distance(lat1, lon1, lat2, lon2):
     return d * 1000; #meters
 
 gpx_list = []
-gpx_path = "./gpx_apuane/"
+gpx_path = "./gpx_files/"
 filelist = os.listdir(gpx_path)
 for i in filelist:
     if i.endswith(".gpx"):
@@ -94,4 +94,4 @@ df_trails['time'] = df_trails['time'].dt.total_seconds()
 print(df_trails)
 
 #convert to csv for further analysis
-df_trails.to_csv("./gpx_apuane/trails.csv", index=False)
+df_trails.to_csv("./gpx_files/trails.csv", index=False)

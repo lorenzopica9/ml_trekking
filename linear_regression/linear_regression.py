@@ -213,14 +213,14 @@ def multiple_linear_regression(df, features, y_var, r_seed, fname, test_size=0.2
 
 #out_fname = f'report_{datetime.now():%Y-%m-%d_%H-%M}'
 out_dir = f'./output/'
-out_fname = out_dir+f'report_prova.md'
+out_fname = out_dir+f'report.md'
 
 os.makedirs(out_dir, exist_ok=True)
 with open(out_fname, 'w', encoding='utf-8') as f:
     f.write('Starting trails analysis.\n')
 
 # file to open containing data
-in_fname = '../create_dataset/gpx_apuane/trails.csv'
+in_fname = '../create_dataset/gpx_files/trails.csv'
 df_trails = pd.read_csv(in_fname)
 
 print_to_file(out_fname, 'Opening ' + in_fname + ' file.')
