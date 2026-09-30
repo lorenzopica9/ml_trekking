@@ -22,6 +22,8 @@ from sklearn.feature_selection import SequentialFeatureSelector
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
+from mpl_toolkits.mplot3d import Axes3D
+
 # define small function for clean info display
 def printinfo(text):
     if not isinstance(text, str):
@@ -134,14 +136,78 @@ def multiple_linear_regression(df, features, y_var, r_seed, fname, test_size=0.2
     print_to_file(fname, '')
     print_to_file(fname, 'Multiple linear regression: y=' + y_var + ', x=' + ', '.join(features))
 
-    # # compute and print values, uncertainties, t-statistics and p-values
-    # print_to_file(fname, 'Intercept = {:.2f} +- {:.2f}. t-statistic = {:.2f}, p-value = {:.3f}'.format(results.params[0], results.bse[0], results.tvalues[0], results.pvalues[0]))
-    # print_to_file(fname, 'Slope('+feature+') = {:.2f} +- {:.2f}. t-statistic = {:.2f}, p-value = {:.3f}'.format(results.params[1], results.bse[1], results.tvalues[1], results.pvalues[1]))
-    
-    # # confidence intervals
-    # conf_int = results.conf_int(alpha=0.05)
-    # print_to_file(fname, 'Intercept CI @ 95% = [{:.2f}, {:.2f}]'.format(conf_int[0, 0], conf_int[0, 1]))
-    # print_to_file(fname, 'Slope('+feature+') CI @ 95% = [{:.2f}, {:.2f}]'.format(conf_int[1, 0], conf_int[1,1]))
+    # get confidence intervals
+    conf_int = results.conf_int(alpha=0.05)
+
+    # print results for intercept
+    print_to_file(fname, 'Intercept = {:.2f} +- {:.2f}. t-statistic = {:.2f}, p-value = {:.3f}'.format(results.params[0], results.bse[0], results.tvalues[0], results.pvalues[0]))
+
+    # print results for features
+    for i in range(1, len(features)+1):
+        print_to_file(fname, 'Param_'+features[i-1]+' = {:.2f} +- {:.2f}. t-statistic = {:.2f}, p-value = {:.3f}'.format(results.params[i], results.bse[i], results.tvalues[i], results.pvalues[i]))
+        # confidence intervals
+        print_to_file(fname, 'Param_'+features[i-1]+' CI @ 95% = [{:.2f}, {:.2f}]'.format(conf_int[i, 0], conf_int[i,1]))
+
+    # model accuracy
+    rse = np.sqrt(results.scale)
+    r2 = results.rsquared
+    f_stat = results.fvalue
+    f_stat_pv = results.f_pvalue
+
+    print_to_file(fname, 'RSE = {:.2f}'.format(rse))
+    print_to_file(fname, 'R2 = {:.2f}. (0: linear fit explains data variation)'.format(r2))
+    print_to_file(fname, 'F-stat = {:.2f}, p-value = {:.2f}'.format(f_stat, f_stat_pv))
+    print_to_file(fname, '')
+
+    if(len(features) == 2):
+        n_grid=30
+
+        # --- griglia 2D sul piano (x_train, y_train) ---
+        # linspace per ciascuna feature, sull'intervallo osservato nei dati
+        x_range = np.linspace(df[features[0]].min(), df[features[0]].max(), n_grid)
+        y_range = np.linspace(df[features[1]].min(), df[features[1]].max(), n_grid)
+
+        # meshgrid combina i due vettori 1D in due matrici 2D (n_grid, n_grid):
+        # xx[i,j], yy[i,j] è la coppia di coordinate del punto (i,j) della griglia
+        xx, yy = np.meshgrid(x_range, y_range)
+
+        # Costruisco il DataFrame di input per la predizione: una riga per ogni
+        # punto della griglia. .ravel() "srotola" la matrice 2D in un vettore 1D
+        # (necessario perché get_prediction vuole una riga per osservazione).
+        X_pred = pd.DataFrame({
+            features[0]: xx.ravel(),
+            features[1]: yy.ravel(),
+        })
+
+        # has_constant='add' forza l'aggiunta della colonna di intercetta anche
+        # se statsmodels non la riconoscerebbe come mancante automaticamente
+        pred = results.get_prediction(sm.add_constant(X_pred, has_constant='add'))
+
+        # predicted_mean è un vettore 1D (n_grid*n_grid,): lo riporto alla forma
+        # 2D della griglia per poterlo passare a plot_surface
+        zz = pred.predicted_mean.reshape(xx.shape)
+
+        # --- figura 3D ---
+        fig = plt.figure(figsize=(8, 6))
+        ax = fig.add_subplot(111, projection='3d')   # projection='3d' richiede l'import Axes3D sopra
+
+        # punti osservati: uno scatter in 3D, un punto per riga del DataFrame
+        ax.scatter(df[features[0]], df[features[1]], df[y_var], s=20, color='C0', label='Dati')
+
+        # superficie di fit: il piano (o superficie) previsto dal modello
+        ax.plot_surface(xx, yy, zz, color='C1', alpha=0.4)
+
+        ax.set_xlabel(features[0])
+        ax.set_ylabel(features[1])
+        ax.set_zlabel(y_var)
+        fig.tight_layout()
+
+        out_dir_fig = f'./output/figs/'
+        os.makedirs(out_dir_fig, exist_ok=True)
+        fname = f'{out_dir_fig}fit3d_{features[0]}_{features[1]}.png'
+        fig.savefig(fname, dpi=200)
+        plt.close(fig)
+
 
 
 
@@ -202,3 +268,4 @@ variables_selection(df_trails, ['length', 'uphill', 'downhill'], 'time', r_seed=
 
 # multiple linear regression
 multiple_linear_regression(df_trails, ['length', 'uphill', 'downhill'], 'time', r_seed=42, fname=out_fname, test_size=0.2)
+multiple_linear_regression(df_trails, ['length', 'downhill'], 'time', r_seed=42, fname=out_fname, test_size=0.2)
