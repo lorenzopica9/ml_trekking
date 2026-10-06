@@ -38,6 +38,38 @@ def print_to_file(file, text):
     with open(out_fname, 'a', encoding='utf-8') as f:
         f.write(text + '\n')
 
+
+import seaborn as sns
+from scipy.stats import pearsonr
+
+def plot_exploration_grid(df, features, out_dir_fig='./output/figs/'):
+
+    # get pearson coefficient for each cell above the diagonal
+    def corr_annot(x, y, **kwargs):
+        # coefficient and p-value
+        r, p = pearsonr(x, y)
+        ax = plt.gca()
+        ax.annotate(f'r = {r:.2f}', xy=(0.5, 0.5), xycoords='axes fraction',
+                    ha='center', va='center', fontsize=12)
+        ax.set_axis_off()
+
+    # create empty grid
+    g = sns.PairGrid(df[features], diag_sharey=False)
+
+    # map_diag apllies specified instruction to diagonal cells
+    g.map_diag(sns.histplot, kde=True)
+
+    # map_lower applies specified instruction to below diagonal cells
+    g.map_lower(sns.scatterplot, s=15, alpha=0.6)   # s = dimensione punti, alpha = trasparenza
+
+    # map_upper applies specified instruction to above diagonal cells
+    g.map_upper(corr_annot)
+
+    g.fig.suptitle("Variables preliminary exploration", y=1.02)
+
+    os.makedirs(out_dir_fig, exist_ok=True)
+    g.savefig(out_dir_fig + 'exploration_grid.png', dpi=200)
+
 def linear_regression_1d(df, feature, y_var, r_seed, fname, test_size=0.2):
     #Define x and y for the regression
     x = df_trails[[feature]].to_numpy() # to numpy to have a 1D array, otherwise is a 1D df
@@ -88,7 +120,11 @@ def linear_regression_1d(df, feature, y_var, r_seed, fname, test_size=0.2):
     pred = results.get_prediction(sm.add_constant(x_grid))
     sf = pred.summary_frame(alpha=0.05)
 
-    fig, ax = plt.subplots(figsize=(7, 5))
+    fig, (ax, ax_res) = plt.subplots(
+        2, 1, figsize=(7, 7),
+        sharex=True,                          
+        gridspec_kw={'height_ratios': [3, 1]}
+    )
     ax.scatter(x_train, y_train, s=20, label='Data')
     ax.plot(x_grid, sf['mean'], color='C1', label='Fit')
     ax.fill_between(x_grid, sf['mean_ci_lower'], sf['mean_ci_upper'], color='C1', alpha=0.3, label='CI @ 95%')
@@ -96,6 +132,13 @@ def linear_regression_1d(df, feature, y_var, r_seed, fname, test_size=0.2):
 
     ax.set_ylabel('time')
     ax.legend()
+
+    # add residuals
+    ax_res.scatter(x_train, results.resid, s=20, color='C0')
+    ax_res.axhline(0, color='k', lw=1)
+    ax_res.set_xlabel(feature)
+    ax_res.set_ylabel('Residui')
+
     fig.tight_layout()
 
     out_dir_fig = f'./output/figs/'
@@ -227,7 +270,7 @@ print_to_file(out_fname, 'Opening ' + in_fname + ' file.')
 
 # print(df_trails)
 
-#inspect dataset - to be completed
+#inspect dataset
 print('Info on trails length:\n mean = {:.2f} m \n std = {:.2f} m \n min = {:.2f} m \n max = {:.2f} m'\
       .format(df_trails['length'].mean(), df_trails['length'].std(),\
               df_trails['length'].min(), df_trails['length'].max()))
@@ -244,9 +287,12 @@ print('Info on trails downhill:\n mean = {:.2f} m \n std = {:.2f} m \n min = {:.
       .format(df_trails['downhill'].mean(), df_trails['downhill'].std(),\
               df_trails['downhill'].min(), df_trails['downhill'].max()))
 
+# Uso, prima di fare qualsiasi fit:
+plot_exploration_grid(df_trails, list(df_trails.columns.values))
+
 
 # one-hot encoding of categorical features
-# df_trails = pd.get_dummies(df_trails, columns=['Education_Level'], drop_first=True)
+df_trails = pd.get_dummies(df_trails, columns=['circular'], drop_first=True).astype(int)
 
 #Cleanup dataset removing missing values
 df_trails.dropna(inplace=True)
@@ -257,10 +303,18 @@ print(df_trails.info())  # Check column types and missing values
 print(df_trails.describe())  # Get summary statistics
 printinfo('')
 
+
+# get list of variables after manipulation (get dummies changes name)
+feat_list = list(df_trails.columns.values)
+feat_list.remove('time')
+
 # perform linear regression on each single feature
-linear_regression_1d(df_trails, 'length', 'time', r_seed=42, fname=out_fname, test_size=0.2)
-linear_regression_1d(df_trails, 'uphill', 'time', r_seed=42, fname=out_fname, test_size=0.2)
-linear_regression_1d(df_trails, 'downhill', 'time', r_seed=42, fname=out_fname, test_size=0.2)
+for feature in feat_list:
+    linear_regression_1d(df_trails, feature, 'time', r_seed=42, fname=out_fname, test_size=0.2)
+# linear_regression_1d(df_trails, 'length', 'time', r_seed=42, fname=out_fname, test_size=0.2)
+# linear_regression_1d(df_trails, 'uphill', 'time', r_seed=42, fname=out_fname, test_size=0.2)
+# linear_regression_1d(df_trails, 'downhill', 'time', r_seed=42, fname=out_fname, test_size=0.2)
+# linear_regression_1d(df_trails, 'circular', 'time', r_seed=42, fname=out_fname, test_size=0.2)
 
 # choose variables to include in multiple linear regression
 variables_selection(df_trails, ['length', 'uphill', 'downhill'], 'time', r_seed=42, fname=out_fname, sel_type='forward', test_size=0.2)
