@@ -37,24 +37,11 @@ RSE = 7247.75
 R2 = 0.01. (0: linear fit explains data variation)
 
 Features forward selection
-Features: length, uphill, downhill
-Results : True, False, True
+Features: length, uphill, downhill, circular_1
+Results : True, False, True, False
 Features backward selection
-Features: length, uphill, downhill
-Results : True, False, True
-
-Multiple linear regression: y=time, x=length, uphill, downhill
-Intercept = 4999.58 +- 1691.66. t-statistic = 2.96, p-value = 0.004
-Param_length = 0.73 +- 0.19. t-statistic = 3.90, p-value = 0.000
-Param_length CI @ 95% = [0.35, 1.10]
-Param_uphill = 2.87 +- 5.67. t-statistic = 0.51, p-value = 0.615
-Param_uphill CI @ 95% = [-8.47, 14.20]
-Param_downhill = 5.43 +- 5.51. t-statistic = 0.99, p-value = 0.328
-Param_downhill CI @ 95% = [-5.60, 16.47]
-RSE = 4861.50
-R2 = 0.57. (0: linear fit explains data variation)
-F-stat = 26.57, p-value = 0.00
-
+Features: length, uphill, downhill, circular_1
+Results : True, False, True, False
 
 Multiple linear regression: y=time, x=length, downhill
 Intercept = 5229.66 +- 1619.45. t-statistic = 3.23, p-value = 0.002

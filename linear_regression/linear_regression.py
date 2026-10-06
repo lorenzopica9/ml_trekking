@@ -169,13 +169,14 @@ def multiple_linear_regression(df, features, y_var, r_seed, fname, test_size=0.2
     #Define x and y for the regression
     x = df_trails[features].to_numpy()
     y = df_trails[y_var].to_numpy()
-
+    
+    # split data into train and test datasets
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=test_size, random_state=r_seed)
-    x_const = sm.add_constant(x_train)
 
     # define train df for later plotting
     df_train = pd.DataFrame(x_train, columns=features)
-    df_train[y_var] = y_train 
+    df_train[y_var] = y_train
+    x_const = sm.add_constant(df_train[features])
 
     model = sm.OLS(y_train, x_const)
     results = model.fit()
@@ -187,13 +188,13 @@ def multiple_linear_regression(df, features, y_var, r_seed, fname, test_size=0.2
     conf_int = results.conf_int(alpha=0.05)
 
     # print results for intercept
-    print_to_file(fname, 'Intercept = {:.2f} +- {:.2f}. t-statistic = {:.2f}, p-value = {:.3f}'.format(results.params[0], results.bse[0], results.tvalues[0], results.pvalues[0]))
+    print_to_file(fname, 'Intercept = {:.2f} +- {:.2f}. t-statistic = {:.2f}, p-value = {:.3f}'.format(results.params['const'], results.bse['const'], results.tvalues['const'], results.pvalues['const']))
 
     # print results for features
-    for i in range(1, len(features)+1):
-        print_to_file(fname, 'Param_'+features[i-1]+' = {:.2f} +- {:.2f}. t-statistic = {:.2f}, p-value = {:.3f}'.format(results.params[i], results.bse[i], results.tvalues[i], results.pvalues[i]))
+    for feat in features:
+        print_to_file(fname, 'Param_'+feat+' = {:.2f} +- {:.2f}. t-statistic = {:.2f}, p-value = {:.3f}'.format(results.params[feat], results.bse[feat], results.tvalues[feat], results.pvalues[feat]))
         # confidence intervals
-        print_to_file(fname, 'Param_'+features[i-1]+' CI @ 95% = [{:.2f}, {:.2f}]'.format(conf_int[i, 0], conf_int[i,1]))
+        print_to_file(fname, 'Param_'+feat+' CI @ 95% = [{:.2f}, {:.2f}]'.format(conf_int.loc[feat, 0], conf_int.loc[feat, 1]))
 
     # model accuracy
     rse = np.sqrt(results.scale)
@@ -247,10 +248,17 @@ def multiple_linear_regression(df, features, y_var, r_seed, fname, test_size=0.2
 
         out_dir_fig = f'./output/figs/'
         os.makedirs(out_dir_fig, exist_ok=True)
-        fname = f'{out_dir_fig}fit3d_{features[0]}_{features[1]}.png'
-        fig.savefig(fname, dpi=200)
+        fout_fig = f'{out_dir_fig}fit3d_{features[0]}_{features[1]}.png'
+        fig.savefig(fout_fig, dpi=200)
         plt.close(fig)
 
+    # plot projection on each feature to estimate fit quality
+    out_dir_fig = f'./output/figs/'
+    fig_proj = plt.figure(figsize=(12, 8))
+    sm.graphics.plot_partregress_grid(results, fig=fig_proj)
+    fig_proj.tight_layout()
+    fout_fig = f'{out_dir_fig}fit3d_partial_regression_grid.png'
+    fig_proj.savefig(fout_fig, dpi=200)
 
 
 
@@ -305,21 +313,17 @@ printinfo('')
 
 
 # get list of variables after manipulation (get dummies changes name)
-feat_list = list(df_trails.columns.values)
-feat_list.remove('time')
+feature_list = list(df_trails.columns.values)
+feature_list.remove('time')
 
 # perform linear regression on each single feature
-for feature in feat_list:
+for feature in feature_list:
     linear_regression_1d(df_trails, feature, 'time', r_seed=42, fname=out_fname, test_size=0.2)
-# linear_regression_1d(df_trails, 'length', 'time', r_seed=42, fname=out_fname, test_size=0.2)
-# linear_regression_1d(df_trails, 'uphill', 'time', r_seed=42, fname=out_fname, test_size=0.2)
-# linear_regression_1d(df_trails, 'downhill', 'time', r_seed=42, fname=out_fname, test_size=0.2)
-# linear_regression_1d(df_trails, 'circular', 'time', r_seed=42, fname=out_fname, test_size=0.2)
 
 # choose variables to include in multiple linear regression
-variables_selection(df_trails, ['length', 'uphill', 'downhill'], 'time', r_seed=42, fname=out_fname, sel_type='forward', test_size=0.2)
-variables_selection(df_trails, ['length', 'uphill', 'downhill'], 'time', r_seed=42, fname=out_fname, sel_type='backward', test_size=0.2)
+variables_selection(df_trails, feature_list, 'time', r_seed=42, fname=out_fname, sel_type='forward', test_size=0.2)
+variables_selection(df_trails, feature_list, 'time', r_seed=42, fname=out_fname, sel_type='backward', test_size=0.2)
 
 # multiple linear regression
-multiple_linear_regression(df_trails, ['length', 'uphill', 'downhill'], 'time', r_seed=42, fname=out_fname, test_size=0.2)
+#multiple_linear_regression(df_trails, ['length', 'uphill', 'downhill'], 'time', r_seed=42, fname=out_fname, test_size=0.2)
 multiple_linear_regression(df_trails, ['length', 'downhill'], 'time', r_seed=42, fname=out_fname, test_size=0.2)
