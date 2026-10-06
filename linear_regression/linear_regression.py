@@ -84,12 +84,12 @@ def linear_regression_1d(df, feature, y_var, r_seed, fname, test_size=0.2):
     print_to_file(fname, '')
 
     # plot results
-    x_grid = np.linspace(x.min(), x.max(), 200)
+    x_grid = np.linspace(x_train.min(), x_train.max(), 200)
     pred = results.get_prediction(sm.add_constant(x_grid))
     sf = pred.summary_frame(alpha=0.05)
 
     fig, ax = plt.subplots(figsize=(7, 5))
-    ax.scatter(x, y, s=20, label='Data')
+    ax.scatter(x_train, y_train, s=20, label='Data')
     ax.plot(x_grid, sf['mean'], color='C1', label='Fit')
     ax.fill_between(x_grid, sf['mean_ci_lower'], sf['mean_ci_upper'], color='C1', alpha=0.3, label='CI @ 95%')
     ax.set_xlabel(feature)
@@ -128,9 +128,13 @@ def multiple_linear_regression(df, features, y_var, r_seed, fname, test_size=0.2
     y = df_trails[y_var].to_numpy()
 
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=test_size, random_state=r_seed)
-    x_const = sm.add_constant(x)
+    x_const = sm.add_constant(x_train)
 
-    model = sm.OLS(y, x_const)
+    # define train df for later plotting
+    df_train = pd.DataFrame(x_train, columns=features)
+    df_train[y_var] = y_train 
+
+    model = sm.OLS(y_train, x_const)
     results = model.fit()
 
     print_to_file(fname, '')
@@ -162,37 +166,33 @@ def multiple_linear_regression(df, features, y_var, r_seed, fname, test_size=0.2
     if(len(features) == 2):
         n_grid=30
 
-        # --- griglia 2D sul piano (x_train, y_train) ---
-        # linspace per ciascuna feature, sull'intervallo osservato nei dati
-        x_range = np.linspace(df[features[0]].min(), df[features[0]].max(), n_grid)
-        y_range = np.linspace(df[features[1]].min(), df[features[1]].max(), n_grid)
+        # 2D grid on plane (x_train, y_train)
+        # linspace of each feature, on interval observed on data
+        x_range = np.linspace(df_train[features[0]].min(), df_train[features[0]].max(), n_grid)
+        y_range = np.linspace(df_train[features[1]].min(), df_train[features[1]].max(), n_grid)
 
-        # meshgrid combina i due vettori 1D in due matrici 2D (n_grid, n_grid):
-        # xx[i,j], yy[i,j] è la coppia di coordinate del punto (i,j) della griglia
+        # get 2D matrices from 1D vectors
+        # xx[i,j], yy[i,j] are (i,j) 2D coordinates of grid
         xx, yy = np.meshgrid(x_range, y_range)
 
-        # Costruisco il DataFrame di input per la predizione: una riga per ogni
-        # punto della griglia. .ravel() "srotola" la matrice 2D in un vettore 1D
-        # (necessario perché get_prediction vuole una riga per osservazione).
+        # build df for prediction - 1D vector from 2D grid as get_prediction takes a vector
         X_pred = pd.DataFrame({
             features[0]: xx.ravel(),
             features[1]: yy.ravel(),
         })
 
-        # has_constant='add' forza l'aggiunta della colonna di intercetta anche
-        # se statsmodels non la riconoscerebbe come mancante automaticamente
+        # has_constant='add' to add the intercept column
         pred = results.get_prediction(sm.add_constant(X_pred, has_constant='add'))
 
-        # predicted_mean è un vettore 1D (n_grid*n_grid,): lo riporto alla forma
-        # 2D della griglia per poterlo passare a plot_surface
+        # convert predicted_mean (1D) to 2D matrix in order to plot the fit
         zz = pred.predicted_mean.reshape(xx.shape)
 
-        # --- figura 3D ---
+        # 3D fig
         fig = plt.figure(figsize=(8, 6))
-        ax = fig.add_subplot(111, projection='3d')   # projection='3d' richiede l'import Axes3D sopra
+        ax = fig.add_subplot(111, projection='3d')
 
-        # punti osservati: uno scatter in 3D, un punto per riga del DataFrame
-        ax.scatter(df[features[0]], df[features[1]], df[y_var], s=20, color='C0', label='Dati')
+        # observed points: uno scatter in 3D, un punto per riga del DataFrame
+        ax.scatter(df_train[features[0]], df_train[features[1]], df_train[y_var], s=20, color='C0', label='Dati')
 
         # superficie di fit: il piano (o superficie) previsto dal modello
         ax.plot_surface(xx, yy, zz, color='C1', alpha=0.4)
